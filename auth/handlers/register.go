@@ -32,7 +32,17 @@ func RegisterHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// TODO: Check if username and email are unique
+		// Check if username and email are unique
+		var count int
+		err := db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 OR email = $2", user.Username, user.Email).Scan(&count)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query database"})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusConflict, gin.H{"error": "Username or email already exists"})
+			return
+		}
 
 		// Hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
